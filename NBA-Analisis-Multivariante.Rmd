@@ -1,0 +1,27 @@
+---
+title: "Análisis Multivariante"
+output: 
+  word_document:
+    reference_docx: formato_word.docx
+---
+
+```{r setup, include=FALSE}
+library(reticulate)
+
+```
+
+```{python data, inclue = FALSE}
+import pandas                   as pd
+import statsmodels.api          as sm
+import pingouin                 as pg
+import matplotlib.pyplot        as plt
+import mpl_axes_aligner
+from statsmodels.formula.api    import ols
+from sklearn.preprocessing      import StandardScaler
+from sklearn.decomposition      import PCA
+
+DfPlayerNBA = pd.read_excel("BBDD_Player.xlsx")
+
+```
+
+
