@@ -1,5 +1,5 @@
 ---
-title: "Análisis Multivariante"
+title: "Clasificación y Agrupación de Jugadores de la NBA para la temporada 2024: Un Análisis Multivariante del Rendimiento"
 output: 
   word_document:
     reference_docx: formato_word.docx
@@ -24,4 +24,39 @@ DfPlayerNBA = pd.read_excel("BBDD_Player.xlsx")
 
 ```
 
+## Resumen
 
+
+El objetivo de este estudio es crear un modelo multivariante utilizando métricas clave de rendimiento para clasificar y agrupar a los jugadores de la NBA entre 1996 y 2024. Se utilizará un análisis multivariante de la varianza (MANOVA) utilizando un enfoque estructurado para evaluar las diferencias significativas en el Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%) en relación con la posición y la edad del jugador. Posteriormente, se utilizará un análisis de componentes principales (PCA) para reducir la dimensionalidad de los datos y crear una variable compuesta llamada "Raiting", que representa el rendimiento general de los jugadores. Se utilizará esta nueva variable para agrupar a los jugadores utilizando análisis de clusters para identificar grupos homogéneos de rendimiento. Finalmente, se implementará un análisis discriminante para clasificar a los jugadores en sus respectivas categorías de rendimiento. Esto evaluará la precisión y la capacidad predictiva del modelo creado. Este enfoque completo facilitará una comprensión profunda y práctica del rendimiento de los jugadores, lo que facilitará la clasificación y agrupación de los jugadores en función de una variedad de métricas de rendimiento.
+
+## Introducción
+
+Tanto para los analistas deportivos como para los equipos profesionales que buscan optimizar sus alineaciones y estrategias, el análisis del rendimiento de los jugadores de baloncesto en la NBA ha sido un tema de creciente interés. La Liga Nacional de Baloncesto (NBA) ha experimentado un cambio significativo desde su fundación en 1946 hasta convertirse en la liga de baloncesto más prestigiosa y competitiva del mundo. La capacidad de evaluar y comparar el rendimiento de los jugadores de manera precisa y objetiva es crucial para la toma de decisiones dentro de los equipos, ya sea para planificar entrenamientos, crear estrategias de juego o contratar nuevos talentos.
+
+La necesidad de desarrollar herramientas analíticas sofisticadas que puedan sintetizar y simplificar la gran cantidad de datos recolectados durante cada temporada es el fundamento de la elección de este tema. La cantidad de datos disponibles ha aumentado exponencialmente desde la introducción de tecnologías de seguimiento y estadísticas avanzadas. Aplicar métodos multivariantes, como el análisis de componentes principales (PCA), el análisis de clusters y el análisis discriminante, se convierte en una estrategia efectiva para reducir la dimensionalidad de los datos y extraer información valiosa en este contexto.
+
+Geopolíticamente, la NBA tiene un impacto global, con jugadores internacionales y una audiencia que se extiende por todo el mundo. También tiene un impacto en Estados Unidos, su país de origen. El vínculo entre este estudio y el entorno se ve en cómo los datos de rendimiento de los jugadores pueden afectar las decisiones financieras y estratégicas de las franquicias, que afectan no solo el juego en sí, sino también aspectos comerciales y de marketing. Este análisis también ayuda a desarrollar técnicas estadísticas que pueden usarse en otros deportes y áreas donde la evaluación del rendimiento es importante. El creciente impacto de la analítica y la inteligencia artificial se puede ver en la integración de técnicas avanzadas de análisis de datos en el deporte.
+
+## Objetivo
+
+El objetivo principal de este estudio es desarrollar y abordar el problema específico de evaluar y clasificar el rendimiento de los jugadores de la National Basketball Association de manera precisa y eficiente mediante el uso de técnicas estadísticas multivariantes. Se presenta un desafío identificar las métricas más relevantes y cómo estas interactúan para influir en el rendimiento global de un jugador en el contexto de una liga tan competitiva y con un volumen de datos tan amplio y diverso.
+
+Para lograr este objetivo, se plantea la siguiente problemática específica: ¿Cómo se pueden utilizar métodos multivariantes para identificar diferencias significativas en las métricas clave de rendimiento de los jugadores de la NBA, reducir la complejidad de los datos, agrupar jugadores en categorías homogéneas y, finalmente, clasificar con precisión a los jugadores según su rendimiento?
+
+Esta problemática se desglosa en varios subobjetivos:
+
+1. Evaluar las diferencias significativas con metricas existentes: Aplicar un análisis multivariante de la varianza (MANOVA) para determinar si las métricas clave como el Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%) varían significativamente según la posición del jugador y su grupo de edad.
+
+2. Reducir la dimensionalidad: Utilizar el análisis de componentes principales (PCA) para identificar las métricas más importantes que explican la mayor parte de la variabilidad de las más de 60 variables que se tienen en la base de datos.
+
+3. Crear una variable compuesta de rendimiento: Construir una nueva variable llamada "Raiting", basada en las componentes principales, que represente el rendimiento global de los jugadores.
+
+4. Agrupar jugadores: Emplear análisis de clusters para agrupar a los jugadores en grupos homogéneos basados en los componentes principales, la variable "Raiting", la edad y la posición.
+
+5. Clasificar y validar: Implementar un análisis discriminante para clasificar a los jugadores en sus respectivas categorías de rendimiento y evaluar la capacidad predictiva del modelo desarrollado.
+
+## Alcance
+
+El alcance de este trabajo se delimita claramente para asegurar la validez de las conclusiones obtenidas a partir del análisis multivariante del rendimiento de los jugadores de la NBA. El estudio abarca las siguientes áreas:
+
+1. Población de Estudio: Se incluyen todos los jugadores que han participado en al menos una temporada completa durante el período mencionado. Esto garantiza que el análisis refleje una amplia variedad de estilos de juego y niveles de rendimiento.
