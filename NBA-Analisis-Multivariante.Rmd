@@ -7,22 +7,27 @@ output:
 
 ```{r setup, include=FALSE}
 library(reticulate)
+library(readxl)
+library(tidyverse)
+library(knitr)
+library(MVN)
+
+Df_Player <- read_excel("BBDD_Player.xlsx")
+
+# Filtrado dado las condiciones del trabajo
+
+Df_Player <- Df_Player %>% filter(GP >= max(GP)/2 & MIN/GP >= 8)
+
+# Crear la nueva variable Age_Group 
+
+Df_Player <- Df_Player %>% 
+  mutate(Age_Group = cut(Age, 
+                         breaks = c(min(Df_Player$Age), 25, 30, max(Df_Player$Age)), 
+                         labels =  c("Young Player", "Mid-Age Player", "Veteran Player"), 
+                         include.lowest = TRUE))
 
 ```
 
-```{python data, inclue = FALSE}
-import pandas                   as pd
-import statsmodels.api          as sm
-import pingouin                 as pg
-import matplotlib.pyplot        as plt
-import mpl_axes_aligner
-from statsmodels.formula.api    import ols
-from sklearn.preprocessing      import StandardScaler
-from sklearn.decomposition      import PCA
-
-DfPlayerNBA = pd.read_excel("BBDD_Player.xlsx")
-
-```
 
 ## Resumen
 
@@ -36,6 +41,10 @@ Tanto para los analistas deportivos como para los equipos profesionales que busc
 La necesidad de desarrollar herramientas analíticas sofisticadas que puedan sintetizar y simplificar la gran cantidad de datos recolectados durante cada temporada es el fundamento de la elección de este tema. La cantidad de datos disponibles ha aumentado exponencialmente desde la introducción de tecnologías de seguimiento y estadísticas avanzadas. Aplicar métodos multivariantes, como el análisis de componentes principales (PCA), el análisis de clusters y el análisis discriminante, se convierte en una estrategia efectiva para reducir la dimensionalidad de los datos y extraer información valiosa en este contexto.
 
 Geopolíticamente, la NBA tiene un impacto global, con jugadores internacionales y una audiencia que se extiende por todo el mundo. También tiene un impacto en Estados Unidos, su país de origen. El vínculo entre este estudio y el entorno se ve en cómo los datos de rendimiento de los jugadores pueden afectar las decisiones financieras y estratégicas de las franquicias, que afectan no solo el juego en sí, sino también aspectos comerciales y de marketing. Este análisis también ayuda a desarrollar técnicas estadísticas que pueden usarse en otros deportes y áreas donde la evaluación del rendimiento es importante. El creciente impacto de la analítica y la inteligencia artificial se puede ver en la integración de técnicas avanzadas de análisis de datos en el deporte.
+
+# Planteamiento del Problema
+
+En la presente sección se expone formalmente la delimitación en el cual se desarrollará la investigación estadística dada la importancia de clasificar y agrupar a los jugadores de la NBA según su rendimiento, partiendo de las diferentes métricas ya existentes.    
 
 ## Objetivo
 
@@ -59,4 +68,344 @@ Esta problemática se desglosa en varios subobjetivos:
 
 El alcance de este trabajo se delimita claramente para asegurar la validez de las conclusiones obtenidas a partir del análisis multivariante del rendimiento de los jugadores de la NBA. El estudio abarca las siguientes áreas:
 
-1. Población de Estudio: Se incluyen todos los jugadores que han participado en al menos una temporada completa durante el período mencionado. Esto garantiza que el análisis refleje una amplia variedad de estilos de juego y niveles de rendimiento.
+1. Período de Estudio: El análisis se centra en los datos de las estadísticas de los jugadores para el año 2024.
+
+2. Población de Estudio: Se incluyen todos los jugadores que han participado en la temporada del período mencionado. Además, que hayan participado en un porcentaje de juegos disputados mayor al 50% de los juegos de la temporada y que jugaran al menos una cantidad de minutos superior a 8 minutos de juegos en estos partidos, esto para poder tener unos datos menos dispersos y más acorde a una situación de un jugador realmente activo en un equipo. Esto garantiza que el análisis refleje una amplia variedad de estilos de juego y niveles de rendimiento.
+
+3. Métricas de Rendimiento: Se consideran múltiples métricas clave de rendimiento, incluyendo pero no limitándose a: puntos anotados (PTS), rebotes (REB), asistencias (AST), robos (STL), bloqueos (BLK), pérdidas (TOV), porcentaje de tiros de campo (FG%), porcentaje de tiros de tres puntos (3P%), porcentaje de tiros libres (FT%), rebotes ofensivos (OREB), rebotes defensivos (DREB), posesiones (POSS), Impacto del Jugador Estimado (PIE), Porcentaje de Uso (USG%), Edad (Age) y posición en la que juega el jugador (Position).
+
+### Limitaciones
+
+Las conclusiones están delimitadas a los jugadores y una temporada especifica, por ende, pueden no ser directamente extrapolables a otros contextos o ligas sin un análisis adicional.
+
+## Hipótesis
+
+En el contexto del análisis multivariante del rendimiento de los jugadores en la temporada 2024, se plantean las siguientes hipótesis que deberán ser contrastadas a lo largo del estudio:
+
+* H1: Existen diferencias significativas en las métricas de rendimiento, específicamente el Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%), según la posición del jugador y su grupo de edad.
+
+* H2: La reducción de dimensionalidad mediante el análisis de componentes principales (PCA) permitirá identificar un conjunto reducido de componentes que explican la mayor parte de la variabilidad de las métricas de los jugadores.
+
+* H3: La nueva variable "Raiting", construida a partir de los componentes principales obtenidos del PCA, será una representación válida y robusta del rendimiento global de los jugadores.
+
+* H4: Los jugadores pueden ser agrupados en clusters homogéneos en función de la variable "Raiting", su edad, su posición de juego y los componentes principales, identificando grupos de rendimiento similar.
+
+* H5: Un modelo de análisis discriminante, basado en las componentes principales y los clusters, podrá clasificar con precisión a los jugadores en sus respectivas categorías de rendimiento y edad, demostrando una alta capacidad predictiva.
+
+# Marco Teórico
+
+En este apartado se presentarán los antecedentes de las investigaciones que sirvieron como cimientos a como estructurar y bajo qué esquema trabajar este modelo de clasificación y agrupación de jugadores de la NBA, por ende también se definirá las diferentes técnicas que los componen esta metodología, además se explicaran los términos y conceptos requeridos para poder comprender el fenómeno bajo el que este está siendo implementado y también se hará mención a las diferentes herramientas tecnológicas para el desarrollo del mismo.
+
+## Antecedentes de la investigación
+
+1. **Análisis discriminante de las estadísticas de juego entre bases, aleros y pivots en baloncesto masculino**
+
+En este artículo sus dos autores (Miguel Ángel Gómez y Alberto Lorenzo Calvo) en el año 2007 para el Instituto Nacional de Educación Física de Catalunya buscaron analizar las diferencias existentes en las estadísticas de juego entre las posiciones de los jugadores en la Euroleague, fue basado en las estadísticas oficiales de la temporada 2004-2005, este trabajo fue de gran utilidad para poder tener un indicio de como una técnica multivariante como lo es el Análisis Discriminante puede ser aplicado para clasificar jugadores de baloncesto de ligas profesionales.
+
+
+2. **Agrupación y equilibrio competitivo en el baloncesto profesional NBA y ACB**
+
+A su vez en el artículo presentado por múltiples autores para el año 2016 en el mismo instituto se aplicó el método de agrupación (Metodo de Cluster) para observar cómo se podrían separar los equipos dado su nivel de competición.
+
+## Bases Teóricas
+
+Las bases teóricas de esta investigación proporcionarán el fundamento conceptual y metodológico necesario para abordar el análisis del rendimiento de los jugadores de la NBA. Se explorarán teorías y conceptos clave en el ámbito del análisis multivariante y estadística deportiva, con un enfoque particular en los métodos utilizados para evaluar el rendimiento y clasificar a los jugadores. Esto incluirá una revisión de la literatura sobre el análisis de componentes principales (PCA), el análisis de clusters, el análisis discriminante y el análisis multivariante de la varianza (MANOVA). Además, se describirá el contexto específico de la NBA y las posiciones de los jugadores, para entender cómo estas variables influyen en las métricas de rendimiento.
+
+* **National Basketball Association (NBA):**
+
+La National Basketball Association, conocida como NBA, es la principal liga profesional de baloncesto en los Estados Unidos y una de las ligas deportivas más prestigiosas y competitivas del mundo. Fundada en 1946, la NBA está compuesta por 30 equipos, divididos en dos conferencias (Este y Oeste) y varias divisiones. La liga es conocida por su alto nivel de competencia, talento internacional y su capacidad para atraer a una audiencia global. La NBA no solo tiene un impacto significativo en el deporte del baloncesto, sino también en la cultura popular y la economía deportiva global.
+
+* **Posiciones de los Jugadores de Baloncesto:**
+
+En el baloncesto, los jugadores se distribuyen en diferentes posiciones según sus habilidades, roles y responsabilidades en la cancha. Las principales posiciones son:
+
+1. Guard (Base o Escolta):
+    * Base (Point Guard, PG): Es el principal manejador del balón y organizador del juego. Su función principal es dirigir las jugadas ofensivas, distribuir el balón a sus compañeros y crear oportunidades de anotación. También se espera que tenga una buena visión de juego y habilidades de dribbling.
+
+    * Escolta (Shooting Guard, SG): Es el encargado de anotar puntos, especialmente desde largas distancias. Los escoltas suelen ser buenos tiradores y tienen la capacidad de crear sus propios tiros. También ayudan en la defensa perimetral.
+    
+2. Forward (Alero o Ala-Pívot):
+
+    * Alero (Small Forward, SF): Es un jugador versátil que puede jugar tanto en posiciones exteriores como interiores. Tiene habilidades de anotación, defensa y rebote, y a menudo es responsable de marcar a los jugadores más atléticos del equipo contrario.
+    
+    * Ala-Pívot (Power Forward, PF): Juega cerca del aro y se enfoca en anotar desde el poste bajo, recoger rebotes y defender a jugadores interiores. Los ala-pívots necesitan ser fuertes físicamente y tener habilidades de tiro de media distancia.
+    
+3. Center (Pívot):
+    
+    * Pívot (Center, C): Es el jugador más alto del equipo y juega cerca del aro. Sus responsabilidades incluyen anotar puntos en la pintura, recoger rebotes, bloquear tiros y proteger la canasta. Los pívots deben ser fuertes, buenos en el juego aéreo y tener una presencia defensiva dominante.
+    
+    
+* **Métricas de Uso y Rendimiento**
+
+    * El PIE es una métrica avanzada desarrollada por la NBA para medir el impacto global de un jugador en el partido. Se calcula utilizando una fórmula que incluye varias estadísticas de juego. Generalmente se expresa como:
+    
+    $\text{PIE} = \frac{(\text{PTS} + \text{FGM} + \text{FTM} - \text{FGA} - \text{FTA} + \text{Deff.REB} + \frac{\text{Off.REB}}{2} + \text{AST} + \text{STL} + \frac{\text{BLK}}{2} - \text{PF} - \text{TO})}{(\text{G.PTS} + \text{G.FGM} + \text{G.FTM} - \text{G.FGA} - \text{G.FTA} + \text{G.Deff.REB} + \frac{\text{G.Off.REB}}{2} + \text{G.AST} + \text{G.STL} + \frac{\text{G.BLK}}{2} - \text{G.PF} - \text{G.TO})}$
+    
+    * El Porcentaje de Uso (USG%) mide el porcentaje de jugadas de un equipo en las que un jugador participa, ya sea lanzando, asistiendo, o perdiendo el balón, mientras está en la cancha. La formula es:
+    
+    $\text{USG\%} = \frac{\text{FGA}_p + 0.44 \times \text{FTA}_p + \text{TO}_p}{(\text{FGA}_t + 0.44 \times \text{FTA}_t + \text{TO}_t) \times \frac{\text{min}_p}{\text{min}_t / 5}} \times 100$
+    
+
+* **Enfoque Multivariante**
+
+El presente trabajo se sustenta en los métodos estadísticos pertenecientes a la rama del análisis multivariante, una disciplina que permite estudiar y comprender las relaciones entre múltiples variables simultáneamente. A continuación, se presentan breves definiciones de los métodos principales que se utilizarán en esta investigación:
+
+  * Análisis de Componentes Principales (PCA): El Análisis de Componentes Principales (PCA) es una técnica utilizada para reducir la dimensionalidad de un conjunto de datos. Esto se logra transformando las variables originales en un nuevo conjunto de variables no correlacionadas, conocidas como componentes principales, que capturan la mayor parte de la variabilidad presente en los datos originales. El objetivo del PCA es simplificar los datos sin perder información significativa, facilitando su interpretación y análisis. 
+
+  * Análisis Multivariante de la Varianza (MANOVA): El Análisis Multivariante de la Varianza (MANOVA) es una extensión del análisis de varianza (ANOVA) que permite evaluar diferencias entre grupos en múltiples variables dependientes simultáneamente. MANOVA analiza si las medias de varias variables dependientes son diferentes entre los niveles de una o más variables independientes categóricas. 
+
+  * Análisis de Clusters: El Análisis de Clusters es un conjunto de técnicas que agrupan un conjunto de objetos de manera que los objetos dentro de un mismo grupo (o cluster) sean más similares entre sí que con los objetos de otros grupos. Este método es útil para identificar patrones o estructuras en los datos sin necesidad de información previa sobre los grupos.
+    
+  * Modelos de Mezcla  Gaussianas (GMM): El Modelos de Mezcla  Gaussianas (GMM, por sus siglas en inglés) es una técnica de modelado estadístico que asume que los datos son una combinación de varias distribuciones gaussianas (normales) con parámetros desconocidos. GMM es una generalización del análisis de clusters, que permite modelar la distribución de datos complejos mediante una combinación ponderada de múltiples gaussianas. Este método es especialmente útil para identificar subgrupos dentro de los datos que no son evidentes con métodos de clustering tradicionales.
+
+  * Análisis Discriminante: El Análisis Discriminante es una técnica utilizada para clasificar observaciones en categorías predefinidas basándose en un conjunto de variables predictoras. Este método busca encontrar una combinación lineal de las variables que mejor separe las diferentes categorías.
+
+* **Herramientas y Tecnologías Utilizadas**
+
+Para llevar a cabo este análisis multivariante del rendimiento de los jugadores de la NBA, se emplearán diversas herramientas y tecnologías de programación y análisis de datos. A continuación, se presentan las herramientas principales y sus roles específicos en esta investigación:
+
+### Lenguajes de Programación (R)
+
+R es un entorno de programación y un lenguaje diseñado específicamente para estadística y análisis de datos. Su robusta comunidad y la amplia gama de paquetes especializados lo convierten en una elección poderosa para la creación y evaluación de modelos estadísticos como PCA, MANOVA, análisis de clusters y análisis discriminante. La flexibilidad de R permite manejar grandes volúmenes de datos y realizar visualizaciones avanzadas con bibliotecas como ggplot2 y tidyverse. Además, su integración con herramientas como RStudio facilita el desarrollo de proyectos analíticos completos, asegurando un flujo de trabajo eficiente y reproducible en el ámbito de la ciencia de datos y la estadística aplicada.
+    
+### Entornos de Desarrollo Integrado (IDE-Rstudio)
+
+RStudio es un entorno de desarrollo integrado (IDE) para R, que también soporta la integración con otros lenguajes de programación como Python. se utilizará en combinación con la librería RMarkdown para documentar y presentar el análisis de manera reproducible y comprensible. El entorno facilita la escritura de código, ejecución y depuración, así como la generación de informes interactivos.
+
+### Librerías y Herramientas de Integración
+
+* Rmarkdown: Es una herramienta dentro de RStudio que permite crear documentos dinámicos, combinando código, texto y resultados de análisis en un solo archivo. Se utilizará para documentar el proceso de análisis y generar informes que incluyan tanto el código como los resultados y las visualizaciones, facilitando la comunicación de los hallazgos de manera clara y estructurada.
+
+
+
+## Obtención de Datos
+
+La base de datos utilizada en esta investigación se construyó mediante técnicas de web scraping, empleando el lenguaje de programación Python. El web scraping permitió extraer datos detallados y actualizados de las estadísticas avanzadas de los jugadores desde la página oficial de la NBA. Para facilitar la visualización y el manejo de los datos recopilados a usuarios ajenos a lenguajes de programación o a manejadores de bases de datos, la información extraída se cargó en un archivo Excel.
+
+El uso de Python para el web scraping proporcionó una solución eficiente y automatizada para la recolección de datos, garantizando que la base de datos estuviera completa y actualizada. Las bibliotecas de Python como requests, beautifulsoup4 y pandas fueron fundamentales en este proceso, permitiendo la extracción, procesamiento y almacenamiento de los datos de manera 
+
+El código utilizado para realizar el web scraping y construir la base de datos está disponible para su consulta y replicación en el siguiente enlace de GitHub-Gist: [Gist Scraper NBA](https://gist.github.com/jarof13/1bc38656af62cfbca57912ed5e076f5c). Este contiene todas las funciones necesarias y las instrucciones detalladas para ejecutar el proceso de extracción de datos, permitiendo a otros investigadores reproducir y validar los resultados obtenidos en este estudio.
+
+
+# Desarrollo Análisis y Resultados
+
+En esta sección, se presentan los métodos de análisis aplicados a la base de datos recopilada, junto con los resultados obtenidos. El objetivo es explorar y comprender los patrones y relaciones en las métricas de rendimiento de los jugadores de la NBA, utilizando técnicas estadísticas multivariantes avanzadas. Se iniciara con un análisis descriptivo que proporcionará una visión general de los datos, seguido de la aplicación de un análisis multivariante de la varianza (MANOVA) para evaluar diferencias significativas en las métricas clave. Posteriormente, se empleara el análisis de componentes principales (PCA) para reducir la dimensionalidad de los datos y construir una nueva variable que represente el rendimiento de los jugadores. Esta variable será utilizada en un análisis de clusters para agrupar jugadores con características similares, y finalmente, se aplicará un análisis discriminante para clasificar a los jugadores y evaluar la precisión del modelo predictivo desarrollado. 
+
+## Análisis Descriptivo
+
+Antes de proceder con el análisis multivariante de la varianza (MANOVA), es fundamental realizar un análisis descriptivo de las métricas clave y las variables categóricas de interés. El análisis descriptivo proporciona una visión general de los datos, permitiendo identificar patrones, tendencias y posibles anomalías que podrían influir en los resultados posteriores. En esta sección, nos enfocamos en las dos métricas principales que se utilizarán en el MANOVA: el Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%).
+
+### Impacto del Jugador dada la Posición
+
+Se observan variaciones en las métricas estadísticas entre las diferentes posiciones. Los Centros muestran el mayor promedio de impacto global para temporada 2023-2024 indicando potencialmente un impacto más significativo en el juego en comparación con los Aleros y Bases. Sin embargo, estos ultimos se encuentran con una menor dispersión. El rango de valores de PIE varía desde mínimos negativos hasta máximos significativos en todas las posiciones, indicando diversidad en el desempeño de los jugadores.
+
+```{r StatsPie, echo=FALSE}
+# Estadisticas descriptivas PIE por posicion
+summary_stats_pie <- Df_Player %>%
+  group_by(Position) %>%
+  summarise(
+    N          = n(),
+    Media      = mean(PIE),
+    D.Estándar = sd(PIE),
+    Min        = min(PIE),
+    Max        = max(PIE),
+    Q1         = quantile(PIE, 0.25),
+    Mediana    = median(PIE),
+    Q3         = quantile(PIE, 0.75)
+  )
+
+
+kable(summary_stats_pie, digits = 2)
+```
+
+Los cuartiles Q1, mediana y Q3 muestran cómo se distribuyen los datos dentro de cada grupo, proporcionando una perspectiva sobre la dispersión y la tendencia central del índice PIE según la posición del jugador en la liga
+
+```{r PieBoxplot, echo=FALSE}
+
+boxplot_pie <- ggplot(Df_Player, aes(x = Position, y = PIE)) +
+  geom_boxplot(color = "darkblue") +
+  labs(
+    title = "",
+    x = "",
+    y = "PIE"
+  ) +
+  theme_classic()
+
+boxplot_pie
+
+```
+
+### Impacto del Jugador dado el grupo de Edad
+
+Los jugadores clasificados como "Young Player" (Joven Jugador) muestran una media de PIE ligeramente inferior a la de los "Mid-Age Player" (Jugador de Mediana Edad), pero con una dispersión un poco inferior, como lo indica la desviación estándar. Esto sugiere que los jugadores más jóvenes son los que tienen un impacto en el juego de forma más homogénea. Por otro lado, los "Mid-Age Player" muestran una media de PIE ligeramente superior, lo que podría indicar una mayor consistencia en el rendimiento a medida que los jugadores maduran en sus carreras.
+
+```{r StatsPieAge, echo=FALSE}
+# Estadisticas descriptivas PIE por edad
+summary_stats_pie_age <- Df_Player %>%
+  group_by(Age_Group) %>%
+  summarise(
+    N          = n(),
+    Media      = mean(PIE),
+    D.Estándar = sd(PIE),
+    Min        = min(PIE),
+    Max        = max(PIE),
+    Q1         = quantile(PIE, 0.25),
+    Mediana    = median(PIE),
+    Q3         = quantile(PIE, 0.75)
+  )
+
+
+kable(summary_stats_pie_age, digits = 2)
+```
+
+Los "Veteran Player" (Jugador Veterano), aunque muestran una media de PIE similar a los jugadores jóvenes, exhiben una dispersión más amplia, como se refleja en la mayor desviación estándar. Esto sugiere que los jugadores veteranos pueden mantener un rendimiento competitivo pero con una variabilidad un poco más significativa en sus contribuciones individuales a lo largo de la temporada.
+
+```{r PieBoxplotAge, echo=FALSE}
+
+boxplot_pie_age <- ggplot(Df_Player, aes(x = Age_Group, y = PIE)) +
+  geom_boxplot(color = "darkblue") +
+  labs(
+    title = "",
+    x = "",
+    y = "PIE"
+  ) +
+  theme_classic()
+
+boxplot_pie_age
+
+```
+
+
+### Impacto del Jugador dado el Grupo de Edad y la Posición
+
+Las estadísticas descriptivas del índice de Impacto del Jugador Estimado (PIE) condicionadas por la edad y la posición del jugador en la NBA revelan varios patrones interesantes. Los centros jóvenes y veteranos jóvenes son los que poseen un mayor impacto promedio a lo largo de esta temporada, sin embargo este segundo subgrupo es el que posee una mayor dispersión, los armadores jóvenes son los que poseen un menor impacto lo cual parece razonable entendiendo que esa posición requiere de una gran preparación y experiencia de juego la cual van adquiriendo al pasar los años en su carrera, sin embargo es el subgrupo más homogéneo y por ultimo para la temporada en cuestión los aleros jóvenes veteranos fueron el subgrupo de esta posición que más impacto tuvo.
+
+```{r StatsPieAgePosition, echo=FALSE}
+
+summary_stats_pie_age_position <- Df_Player %>%
+  group_by(Age_Group, Position) %>%
+  summarise(
+    N          = n(),
+    Media      = mean(PIE),
+    D.Estándar = sd(PIE),
+    Min        = min(PIE),
+    Max        = max(PIE),
+    Q1         = quantile(PIE, 0.25),
+    Mediana    = median(PIE),
+    Q3         = quantile(PIE, 0.75),
+    .groups = 'drop'
+  )
+
+
+kable(summary_stats_pie_age_position, digits = 2)
+
+```
+
+### Tasa de Uso del Jugador dada la Posición
+
+Las estadísticas descriptivas del porcentaje de uso (USG%) de los jugadores de la NBA, dadas las posiciones, ofrecen una visión clara sobre cómo se distribuye la carga de trabajo ofensiva entre los diferentes roles en la cancha. Para los Centros, se observa que tienen una media de USG% menor en comparación con los Aleros y los Bases. También es destacable que a pesar de que sea la posición con menor tasa de uso es también la menos homogénea, esto puede dar indicio a que en algunos grupos formados con otras variables los centros poseen un mayor o menor uso. 
+
+```{r StatsUsg, echo=FALSE}
+# Estadisticas descriptivas USG% por posicion
+summary_stats_usg <- Df_Player %>%
+  group_by(Position) %>%
+  summarise(
+    N          = n(),
+    Media      = mean(`USG%`),
+    D.Estándar = sd(`USG%`),
+    Min        = min(`USG%`),
+    Max        = max(`USG%`),
+    Q1         = quantile(`USG%`, 0.25),
+    Mediana    = median(`USG%`),
+    Q3         = quantile(`USG%`, 0.75)
+  )
+
+
+kable(summary_stats_usg, digits = 2)
+```
+
+Por último, los Bases presentan la media de USG% más alta entre las tres posiciones. Esto refleja su papel central en la ofensiva del equipo, siendo los jugadores que más frecuentemente manejan el balón y realizan jugadas. Ellos tienen una carga de trabajo ofensiva significativamente mayor y pese a ser la posición con mayor cantidad de jugadores es también la que es más homogénea.
+
+```{r UsgBoxplot, echo=FALSE}
+
+boxplot_usg_position <- ggplot(Df_Player, aes(x = Position, y = `USG%`)) +
+  geom_boxplot(color = "darkblue") +
+  labs(
+    title = "",
+    x = "",
+    y = "USG%"
+  ) +
+  theme_classic()
+
+boxplot_usg_position
+
+```
+
+
+### Tasa de Uso del Jugador dada la Edad
+
+Las estadísticas descriptivas del porcentaje de uso (USG%) de los jugadores de la NBA, categorizados por grupos de edad, proporcionan una comprensión de cómo varía la participación ofensiva según la etapa de la carrera del jugador. Para los "Young Players" (Jugadores Jóvenes), se observa que tienen la media de USG% más alta entre los tres grupos de edad. Esto sugiere que los jugadores jóvenes tienden a tener un papel ofensivo más prominente, posiblemente debido a su energía y frescura física además de ser el grupo de edad con menor dispersión.
+
+```{r StatsUsgAge, echo=FALSE}
+# Estadisticas descriptivas USG% por edad
+summary_stats_usg_age <- Df_Player %>%
+  group_by(Age_Group) %>%
+  summarise(
+    N          = n(),
+    Media      = mean(`USG%`),
+    D.Estándar = sd(`USG%`),
+    Min        = min(`USG%`),
+    Max        = max(`USG%`),
+    Q1         = quantile(`USG%`, 0.25),
+    Mediana    = median(`USG%`),
+    Q3         = quantile(`USG%`, 0.75)
+  )
+
+
+kable(summary_stats_usg_age, digits = 2)
+```
+
+Para los "Veteran Players" (Jugadores Veteranos), se registra la media de USG% más baja entre los grupos de edad. La mediana y los cuartiles refuerzan esta observación, mostrando que los jugadores veteranos, en general, tienen un menor rol ofensivo.
+
+```{r UsgBoxplotAge, echo=FALSE}
+
+boxplot_usg_age <- ggplot(Df_Player, aes(x = Age_Group, y = `USG%`)) +
+  geom_boxplot(color = "darkblue") +
+  labs(
+    title = "",
+    x = "",
+    y = "USG%"
+  ) +
+  theme_classic()
+
+boxplot_usg_age
+
+```
+
+
+### Tasa de Uso del Jugador dado el Grupo de Edad y la Posición
+
+Las estadísticas descriptivas del porcentaje de uso (USG%) condicionadas por la edad y la posición del jugador en la NBA revelan varios patrones interesantes. Los guardias jóvenes tienen el mayor porcentaje de uso, reflejando una alta responsabilidad ofensiva desde temprano en sus carreras y la decisión del equipo para poder darle espacio a que se desarrolle. Este grupo también muestra una considerable homogeneidad, indicando una menor variabilidad en su participación ofensiva. Los aleros jóvenes también tienen un porcentaje de uso alto, aunque ligeramente inferior al de los guardias, con una dispersión similar. Los centers jóvenes muestran un menor porcentaje de uso, lo cual puede estar relacionado con las responsabilidades específicas de su posición. A medida que los jugadores envejecen, se observa una disminución en el porcentaje de uso en todas las posiciones. Los centers de mediana edad y veteranos tienen el menor porcentaje de uso, indicando una menor carga ofensiva a medida que progresan en sus carreras. Los forwards y guardias de mediana edad mantienen una participación ofensiva alta, aunque con una leve disminución en comparación con sus contrapartes jóvenes. En general, los guardias, independientemente de la edad, tienden a mantener una alta participación ofensiva, mientras que los centros experimentan la mayor disminución en el porcentaje de uso con la edad.
+
+```{r StatsUsgAgePosition, echo=FALSE}
+# Estadisticas descriptivas USG% por edad y posicion
+summary_stats_usg_age_position <- Df_Player %>%
+  group_by(Age_Group, Position) %>%
+  summarise(
+    N          = n(),
+    Media      = mean(`USG%`),
+    D.Estándar = sd(`USG%`),
+    Min        = min(`USG%`),
+    Max        = max(`USG%`),
+    Q1         = quantile(`USG%`, 0.25),
+    Mediana    = median(`USG%`),
+    Q3         = quantile(`USG%`, 0.75),
+    .groups = 'drop'
+  )
+
+
+kable(summary_stats_usg_age_position, digits = 2)
+```
+
+
+
