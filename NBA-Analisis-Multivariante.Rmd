@@ -9,12 +9,15 @@ output:
 library(readxl)
 library(tidyverse)
 library(knitr)
+library(FactoMineR)
+library(factoextra)
+library(corrplot)
 
 Df_Player <- read_excel("BBDD_Player.xlsx")
 
 # Filtrado dado las condiciones del trabajo
 
-Df_Player <- Df_Player %>% filter(GP >= max(GP)/2 & MIN/GP >= 8)
+Df_Player <- Df_Player %>% filter(GP >= max(GP)/2 & MIN/GP >= 8 & Season == "2023-24")
 
 # Crear la nueva variable Age_Group 
 
@@ -30,7 +33,7 @@ Df_Player <- Df_Player %>%
 ## Resumen
 
 
-El objetivo de este estudio es crear un modelo multivariante utilizando métricas clave de rendimiento para clasificar y agrupar a los jugadores de la NBA entre 1996 y 2024. Se utilizará un análisis multivariante de la varianza (MANOVA) utilizando un enfoque estructurado para evaluar las diferencias significativas en el Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%) en relación con la posición y la edad del jugador. Posteriormente, se utilizará un análisis de componentes principales (PCA) para reducir la dimensionalidad de los datos y crear una variable compuesta llamada "Raiting", que representa el rendimiento general de los jugadores. Se utilizará esta nueva variable para agrupar a los jugadores utilizando análisis de clusters para identificar grupos homogéneos de rendimiento. Finalmente, se implementará un análisis discriminante para clasificar a los jugadores en sus respectivas categorías de rendimiento. Esto evaluará la precisión y la capacidad predictiva del modelo creado. Este enfoque completo facilitará una comprensión profunda y práctica del rendimiento de los jugadores, lo que facilitará la clasificación y agrupación de los jugadores en función de una variedad de métricas de rendimiento.
+El objetivo de este estudio es crear un modelo multivariante utilizando métricas clave de rendimiento para clasificar y agrupar a los jugadores de la NBA para la temporada 2024. Se utilizará un análisis multivariante de la varianza (MANOVA) utilizando un enfoque estructurado para evaluar las diferencias significativas en el Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%) en relación con la posición y la edad del jugador. Posteriormente, se utilizará un análisis de componentes principales (PCA) para reducir la dimensionalidad de los datos y crear una variable compuesta llamada "Raiting", que representa el rendimiento general de los jugadores. Se utilizará esta nueva variable para agrupar a los jugadores utilizando análisis de clusters para identificar grupos homogéneos de rendimiento. Finalmente, se implementará un análisis discriminante para clasificar a los jugadores en sus respectivas categorías de rendimiento. Esto evaluará la precisión y la capacidad predictiva del modelo creado. Este enfoque completo facilitará una comprensión profunda y práctica del rendimiento de los jugadores, lo que facilitará la clasificación y agrupación de los jugadores en función de una variedad de métricas de rendimiento.
 
 ## Introducción
 
@@ -153,8 +156,6 @@ El presente trabajo se sustenta en los métodos estadísticos pertenecientes a l
   * Análisis Multivariante de la Varianza (MANOVA): El Análisis Multivariante de la Varianza (MANOVA) es una extensión del análisis de varianza (ANOVA) que permite evaluar diferencias entre grupos en múltiples variables dependientes simultáneamente. MANOVA analiza si las medias de varias variables dependientes son diferentes entre los niveles de una o más variables independientes categóricas. 
 
   * Análisis de Clusters: El Análisis de Clusters es un conjunto de técnicas que agrupan un conjunto de objetos de manera que los objetos dentro de un mismo grupo (o cluster) sean más similares entre sí que con los objetos de otros grupos. Este método es útil para identificar patrones o estructuras en los datos sin necesidad de información previa sobre los grupos.
-    
-  * Modelos de Mezcla  Gaussianas (GMM): El Modelos de Mezcla  Gaussianas (GMM, por sus siglas en inglés) es una técnica de modelado estadístico que asume que los datos son una combinación de varias distribuciones gaussianas (normales) con parámetros desconocidos. GMM es una generalización del análisis de clusters, que permite modelar la distribución de datos complejos mediante una combinación ponderada de múltiples gaussianas. Este método es especialmente útil para identificar subgrupos dentro de los datos que no son evidentes con métodos de clustering tradicionales.
 
   * Análisis Discriminante: El Análisis Discriminante es una técnica utilizada para clasificar observaciones en categorías predefinidas basándose en un conjunto de variables predictoras. Este método busca encontrar una combinación lineal de las variables que mejor separe las diferentes categorías.
 
@@ -218,7 +219,7 @@ kable(summary_stats_pie, digits = 2)
 
 Los cuartiles Q1, mediana y Q3 muestran cómo se distribuyen los datos dentro de cada grupo, proporcionando una perspectiva sobre la dispersión y la tendencia central del índice PIE según la posición del jugador en la liga
 
-```{r PieBoxplot, echo=FALSE}
+```{r PieBoxplot, echo=FALSE, fig.height=3.5}
 
 boxplot_pie <- ggplot(Df_Player, aes(x = Position, y = PIE)) +
   geom_boxplot(color = "darkblue") +
@@ -258,7 +259,7 @@ kable(summary_stats_pie_age, digits = 2)
 
 Los "Veteran Player" (Jugador Veterano), aunque muestran una media de PIE similar a los jugadores jóvenes, exhiben una dispersión más amplia, como se refleja en la mayor desviación estándar. Esto sugiere que los jugadores veteranos pueden mantener un rendimiento competitivo pero con una variabilidad un poco más significativa en sus contribuciones individuales a lo largo de la temporada.
 
-```{r PieBoxplotAge, echo=FALSE}
+```{r PieBoxplotAge, echo=FALSE, fig.height=3.5}
 
 boxplot_pie_age <- ggplot(Df_Player, aes(x = Age_Group, y = PIE)) +
   geom_boxplot(color = "darkblue") +
@@ -324,7 +325,7 @@ kable(summary_stats_usg, digits = 2)
 
 Por último, los Bases presentan la media de USG% más alta entre las tres posiciones. Esto refleja su papel central en la ofensiva del equipo, siendo los jugadores que más frecuentemente manejan el balón y realizan jugadas. Ellos tienen una carga de trabajo ofensiva significativamente mayor y pese a ser la posición con mayor cantidad de jugadores es también la que es más homogénea.
 
-```{r UsgBoxplot, echo=FALSE}
+```{r UsgBoxplot, echo=FALSE, fig.height=3.5}
 
 boxplot_usg_position <- ggplot(Df_Player, aes(x = Position, y = `USG%`)) +
   geom_boxplot(color = "darkblue") +
@@ -365,7 +366,7 @@ kable(summary_stats_usg_age, digits = 2)
 
 Para los "Veteran Players" (Jugadores Veteranos), se registra la media de USG% más baja entre los grupos de edad. La mediana y los cuartiles refuerzan esta observación, mostrando que los jugadores veteranos, en general, tienen un menor rol ofensivo.
 
-```{r UsgBoxplotAge, echo=FALSE}
+```{r UsgBoxplotAge, echo=FALSE, fig.height=3.5}
 
 boxplot_usg_age <- ggplot(Df_Player, aes(x = Age_Group, y = `USG%`)) +
   geom_boxplot(color = "darkblue") +
@@ -439,9 +440,117 @@ Para cada una de las hipótesis se tiene:
 
 1. Con un nivel de significación del 5% se puede interpretar que hay diferencias significativas en el Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%) en función de la posición del jugador. Se puede rechazar la hipótesis nula y concluir que la posición del jugador tiene un impacto significativo en estas métricas de rendimiento.
 
-2. Con un nivel de significación del 5% se puede interpretar que hay diferencias significativas en el PIE y USG% en función del grupo de edad del jugador. Se puede rechazar la hipótesis nula y concluir que la edad del jugador también tiene un impacto significativo en estas métricas.
+2. Con un nivel de significación del 5% se puede interpretar que no hay diferencias significativas en el PIE y USG% en función del grupo de edad del jugador. No se encontraron evidencias suficientes para rechazar la hipótesis nula y concluir que la edad del jugador también tiene un impacto significativo en estas métricas.
 
-3. Con un nivel de significación del 5% se puede interpretar que existe una interacción significativa entre la posición del jugador y su grupo de edad en términos de PIE y USG%. Esto sugiere que el impacto de la posición del jugador en estas métricas varía según su grupo de edad.
+3. Con un nivel de significación del 5% se puede interpretar que no existe una interacción significativa entre la posición del jugador y su grupo de edad en términos de PIE y USG%. Esto sugiere que el impacto de la posición del jugador en estas métricas no varía según su grupo de edad.
+
+## Análisis de Componentes Principales 
+
+El Análisis de Componentes Principales (PCA) es una técnica estadística utilizada para reducir la dimensionalidad de un conjunto de datos mientras se preserva la mayor cantidad de variabilidad posible. En el contexto del análisis de rendimiento de jugadores de baloncesto de la NBA, PCA permite identificar combinaciones lineales de variables que capturan las características más significativas del rendimiento de los jugadores. Antes de proceder con el PCA, es esencial realizar un estudio de correlación para seleccionar las variables que están más relacionadas con el rendimiento de los jugadores. Este paso asegura que los componentes principales construidos sean representativos de los aspectos más relevantes del juego.
 
 
+### Selección de Variables para el PCA
+
+Basado en la lógica del deporte y el impacto en el rendimiento de los jugadores, las siguientes variables serán consideradas para el análisis de componentes principales:
+
+
+* PTS (Puntos): Una métrica directa del rendimiento ofensivo del jugador.
+
+* AST (Asistencias): Refleja la capacidad del jugador para crear oportunidades de anotación para sus compañeros.
+
+* REB (Rebotes): Incluye tanto rebotes ofensivos como defensivos, importante para evaluar la capacidad de control del balón.
+
+* STL (Robos): Indica la habilidad defensiva del jugador.
+
+* BLK (Bloqueos): Otra métrica defensiva importante.
+
+* TOV (Pérdidas de balón): Refleja la eficiencia del jugador en el manejo del balón.
+
+* FG% (Porcentaje de tiros de campo): Evalúa la precisión de los tiros del jugador.
+
+* 3P% (Porcentaje de triples): Evalúa la precisión en tiros de tres puntos.
+
+* FT% (Porcentaje de tiros libres): Mide la eficiencia en los tiros libres.
+
+* USG% (Porcentaje de uso): Indica la frecuencia con la que el jugador está involucrado en las jugadas del equipo.
+
+* PIE (Player Impact Estimate): Una métrica avanzada que estima el impacto del jugador en el juego.
+
+* TS% (True Shooting Percentage): Mide la eficiencia del jugador considerando tiros de campo, triples y tiros libres.
+
+* EFG% (Effective Field Goal Percentage): Ajusta el porcentaje de tiros de campo para dar más peso a los tiros de tres puntos.
+
+Estas variables proporcionan una visión integral tanto del rendimiento ofensivo como defensivo de los jugadores, así como su eficiencia en diferentes aspectos del juego.
+
+
+```{r Correlacion, echo=FALSE}
+
+# Selección de variables para el PCA
+Df_Player_PCA <- Df_Player %>% 
+  select(Player, GP , PTS, AST, REB, STL, BLK, TOV, `FG%`, `3P%`, `FT%`, `USG%`, PIE, `TS%`, `EFG%`)
+
+Df_Player_PCA <- Df_Player_PCA %>%
+  mutate(
+    PTS = round(PTS / GP,2),
+    AST = round(AST / GP,2),
+    REB = round(REB / GP,2),
+    STL = round(STL / GP,2),
+    BLK = round(BLK / GP,2),
+    TOV = round(TOV / GP,2))
+
+
+
+selected_vars_pca <- Df_Player_PCA %>% 
+  select(PTS, AST, REB, STL, BLK, TOV, `FG%`, `3P%`, `FT%`, `USG%`, PIE, `TS%`, `EFG%`)
+
+
+# Calcular la matriz de correlación
+cor_matrix <- cor(selected_vars_pca, use = "complete.obs")
+
+
+# Visualización de la matriz de correlación
+corrplot(cor_matrix, method = "color", type = "upper", 
+         tl.col = "black", tl.srt = 45, addCoef.col = "black", 
+         col = colorRampPalette(c("blue", "white", "red"))(200),
+         tl.cex = 0.7, 
+         number.cex = 0.6, 
+         cl.cex = 1.2, 
+         mar = c(0, 0, 1, 0), 
+         is.corr = TRUE) 
+
+```
+
+La variable de porcentaje de tiros de tres puntos (3P%) mostró una relación poco significativa con el resto de las variables seleccionadas en el análisis de correlación. Debido a esta baja correlación, se decidió no incluir 3P% en el análisis de componentes principales (PCA). Al priorizar variables que muestran una mayor interrelación, el PCA puede identificar de manera más efectiva los componentes subyacentes que explican la variabilidad en el rendimiento de los jugadores.
+
+## PCA
+
+Al observar el scree plot, se puede notar que los primeros tres componentes principales explican una mayor parte de la varianza en comparación con los componentes posteriores. Haciendo uso del método del porcentaje de varianza explicada que sugiere retener los componentes que, en conjunto, expliquen un porcentaje significativo de la varianza total, generalmente alrededor del 70-80%. En este caso, los primeros tres componentes principales explican una proporción considerable de la varianza total, lo que indica que son suficientes para capturar la mayor parte de la información contenida en los datos originales.
+
+
+```{r PCA, echo=FALSE}
+selected_vars_pca <- Df_Player_PCA %>% 
+  select(PTS, AST, REB, STL, BLK, TOV, `FG%`, `FT%`, `USG%`, PIE, `TS%`, `EFG%`)
+
+pca_model <- prcomp(selected_vars_pca,scale=TRUE)
+
+scree_plot <- fviz_eig(pca_model, addlabels = TRUE, ylim = c(0, 50))
+
+scree_plot
+
+```
+
+### Interpretación de los Componentes
+
+1. Primer Componente Principal (PC1): Este componente está principalmente influenciado por variables de rendimiento general como los puntos (PTS), asistencias (AST), rebotes (REB), robos (STL), bloqueos (BLK), pérdidas (TOV), uso de posesiones (USG%), impacto estimado del jugador (PIE), y eficiencias de tiro (TS%, EFG%). PC1 parece representar una medida general del rendimiento del jugador en el juego, ya que incluye una combinación equilibrada de estadísticas ofensivas y defensivas.
+  
+2. Segundo Componente Principal (PC2): Este componente está significativamente influenciado por el porcentaje de tiros de campo (FG%), porcentaje de tiros libres (FT%), y porcentaje de tiros efectivos (EFG%). PC2 parece centrarse en la calidad del rendimiento ofensivo y la eficiencia del jugador en términos de anotación y precisión en los tiros.
+  
+3. Tercer Componente Principal (PC3): Las variables que influyen significativamente en este componente incluyen rebotes (REB), bloqueos (BLK), y porcentaje de tiros libres (FT%). PC3 parece estar asociado con el rendimiento defensivo y la eficiencia de los tiros libres.
+
+```{r PcaRotation, echo=FALSE}
+componentes <-  pca_model$rotation[,1:3] 
+
+kable(componentes, digits = 2)
+
+```
 
