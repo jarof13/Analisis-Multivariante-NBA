@@ -6,11 +6,9 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-library(reticulate)
 library(readxl)
 library(tidyverse)
 library(knitr)
-library(MVN)
 
 Df_Player <- read_excel("BBDD_Player.xlsx")
 
@@ -406,6 +404,44 @@ summary_stats_usg_age_position <- Df_Player %>%
 
 kable(summary_stats_usg_age_position, digits = 2)
 ```
+
+## Modelo Manova 
+
+El siguiente paso en este análisis es aplicar el modelo de Análisis Multivariante de la Varianza (MANOVA) para evaluar si existen diferencias significativas en las métricas de rendimiento del Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%) en función de la posición del jugador y su grupo de edad. El MANOVA es una extensión del ANOVA que permite analizar múltiples variables dependientes simultáneamente, lo que proporciona una visión más integral de cómo los factores categóricos influyen en las métricas de rendimiento. Este análisis permitirá identificar si la posición del jugador y la edad agrupada en categorías tienen un impacto significativo en las métricas de rendimiento mencionadas.
+
+**Hipótesis Nula (H0):**
+
+1. No hay diferencias significativas en PIE y USG% en función de la posición del jugador.
+2. No hay diferencias significativas en PIE y USG% en función del grupo de edad del jugador.
+3. No hay interacción significativa entre la posición del jugador y su grupo de edad en términos de PIE y USG%.
+
+**Hipótesis Alternativa (H1):**
+
+1. Hay diferencias significativas en PIE y USG% en función de la posición del jugador.
+2. Hay diferencias significativas en PIE y USG% en función del grupo de edad del jugador.
+3. Hay una interacción significativa entre la posición del jugador y su grupo de edad en términos de PIE y USG%.
+
+```{r manova, echo=FALSE}
+
+# Convertir Position y Age_Group a factores
+Df_Player$Position  <- as.factor(Df_Player$Position)
+Df_Player$Age_Group <- as.factor(Df_Player$Age_Group)
+
+# Crear un modelo MANOVA
+manova_model <- manova(cbind(PIE, `USG%`) ~ Position * Age_Group, data = Df_Player)
+
+kable(summary(manova_model)$stats, digits = 2)
+
+```
+
+
+Para cada una de las hipótesis se tiene: 
+
+1. Con un nivel de significación del 5% se puede interpretar que hay diferencias significativas en el Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%) en función de la posición del jugador. Se puede rechazar la hipótesis nula y concluir que la posición del jugador tiene un impacto significativo en estas métricas de rendimiento.
+
+2. Con un nivel de significación del 5% se puede interpretar que hay diferencias significativas en el PIE y USG% en función del grupo de edad del jugador. Se puede rechazar la hipótesis nula y concluir que la edad del jugador también tiene un impacto significativo en estas métricas.
+
+3. Con un nivel de significación del 5% se puede interpretar que existe una interacción significativa entre la posición del jugador y su grupo de edad en términos de PIE y USG%. Esto sugiere que el impacto de la posición del jugador en estas métricas varía según su grupo de edad.
 
 
 
