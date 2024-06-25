@@ -531,7 +531,11 @@ Al observar el scree plot, se puede notar que los primeros tres componentes prin
 selected_vars_pca <- Df_Player_PCA %>% 
   select(PTS, AST, REB, STL, BLK, TOV, `FG%`, `FT%`, `USG%`, PIE, `TS%`, `EFG%`)
 
-pca_model <- prcomp(selected_vars_pca,scale=TRUE)
+## Autovalores
+
+eigen_values <- eigen(cov(scale(selected_vars_pca)))
+
+pca_model <- princomp(selected_vars_pca,scale=TRUE)
 
 scree_plot <- fviz_eig(pca_model, addlabels = TRUE, ylim = c(0, 50))
 
@@ -541,16 +545,58 @@ scree_plot
 
 ### Interpretación de los Componentes
 
-1. Primer Componente Principal (PC1): Este componente está principalmente influenciado por variables de rendimiento general como los puntos (PTS), asistencias (AST), rebotes (REB), robos (STL), bloqueos (BLK), pérdidas (TOV), uso de posesiones (USG%), impacto estimado del jugador (PIE), y eficiencias de tiro (TS%, EFG%). PC1 parece representar una medida general del rendimiento del jugador en el juego, ya que incluye una combinación equilibrada de estadísticas ofensivas y defensivas.
+1. Primer Componente Principal (PC1): El primer componente principal está fuertemente influenciado por las variables FT% (tiros libres) y PTS (puntos). Las cargas de estas variables son positivas, indicando que los jugadores con altas puntuaciones en el primer componente tienden a tener porcentajes altos de tiros libres y anotar más puntos. Variables como USG% (porcentaje de uso) y PIE (impacto del jugador estimado) también tienen cargas positivas, pero menores en comparación con FT% y PTS.
   
-2. Segundo Componente Principal (PC2): Este componente está significativamente influenciado por el porcentaje de tiros de campo (FG%), porcentaje de tiros libres (FT%), y porcentaje de tiros efectivos (EFG%). PC2 parece centrarse en la calidad del rendimiento ofensivo y la eficiencia del jugador en términos de anotación y precisión en los tiros.
+2. Segundo Componente Principal (PC2): El segundo componente principal tiene fuertes cargas positivas en FG% (porcentaje de tiros de campo), TS% (porcentaje de tiros verdaderos) y EFG% (porcentaje de tiros efectivos). Estas variables están asociadas con la eficiencia de los tiros en general. Además, PTS también tiene una carga considerable en este componente, lo que refuerza la idea de que este componente está relacionado con la eficiencia en la anotación. El componente podría ser interpretado como una medida de eficiencia general en el tiro y anotación.
   
-3. Tercer Componente Principal (PC3): Las variables que influyen significativamente en este componente incluyen rebotes (REB), bloqueos (BLK), y porcentaje de tiros libres (FT%). PC3 parece estar asociado con el rendimiento defensivo y la eficiencia de los tiros libres.
+3. Tercer Componente Principal (PC3): El tercer componente principal está influenciado principalmente por PTS, USG%, y REB (rebotes). Esto indica que los jugadores con altas puntuaciones en este componente tienden a ser jugadores que anotan muchos puntos, tienen un alto porcentaje de uso, y recogen una cantidad considerable de rebotes. Las cargas negativas en FT% y TS% sugieren que este componente podría estar capturando un tipo diferente de rendimiento en comparación con los primeros dos componentes, posiblemente relacionado con la contribución general en el juego, incluyendo anotación y rebotes, pero con menos énfasis en la eficiencia de los tiros.
 
 ```{r PcaRotation, echo=FALSE}
-componentes <-  pca_model$rotation[,1:3] 
+componentes <-  pca_model$loadings[,1:3] 
 
 kable(componentes, digits = 2)
+
+```
+
+### Variable de Rendimiento Basado en los Componenetes Principales
+
+La variable "Rendimiento" se ha creado como una combinación ponderada de los tres primeros componentes principales obtenidos del análisis de componentes principales (PCA). Esta técnica se fundamenta en la idea de que los componentes principales capturan la variabilidad de un conjunto de variables originales, condensándola en nuevas dimensiones ortogonales.
+
+En este caso, los componentes principales representan combinaciones lineales de las variables originales que maximizan la varianza explicada en los datos. Al multiplicar cada puntuación de componente principal por su correspondiente autovalor (que representa la varianza explicada por ese componente), y luego sumar estos productos, se obtiene una medida compuesta que refleja la contribución relativa de cada jugador en función de estos componentes fundamentales. Esta nueva variable, "Rendimiento", está diseñada para capturar de manera sintética las características clave que emergen de los datos originales, permitiendo una evaluación simplificada pero representativa del rendimiento general de los jugadores en la NBA.
+
+```{r Rendimiento, echo=FALSE}
+
+# Obtener las puntuaciones de los componentes principales
+pca_scores <- as.data.frame(pca_model$scores)
+
+
+# Calcular la nueva variable artificial como una combinación ponderada de los tres primeros componentes principales
+Rendimiento <- pca_scores[, 1] * eigen_values$values[1] + pca_scores[, 2] * eigen_values$values[2] + pca_scores[, 3] * eigen_values$values[3]
+
+# Crear un nuevo data frame con las variables deseadas
+Df_Player_Cluster <- Df_Player %>%
+  select(Player, Position, Age_Group, Age) %>%
+  mutate(PC1 = pca_scores[, 1],
+         PC2 = pca_scores[, 2],
+         PC3 = pca_scores[, 3],
+         Rendimiento = Rendimiento)
+
+summary_stats_rendimiento <- Df_Player_Cluster %>%
+  summarise(
+    N          = n(),
+    Media      = mean(Rendimiento),
+    D.Estándar = sd(Rendimiento),
+    Min        = min(Rendimiento),
+    Max        = max(Rendimiento),
+    Q1         = quantile(Rendimiento, 0.25),
+    Mediana    = median(Rendimiento),
+    Q3         = quantile(Rendimiento, 0.75)
+  )
+
+
+kable(summary_stats_rendimiento, digits = 2)
+
+
 
 ```
 
