@@ -7,11 +7,13 @@ output:
 
 ```{r setup, include=FALSE}
 library(readxl)
-library(tidyverse)
+library(dplyr)
+library(ggplot2)
 library(knitr)
 library(FactoMineR)
 library(factoextra)
 library(corrplot)
+library(cluster)
 
 Df_Player <- read_excel("BBDD_Player.xlsx")
 
@@ -597,6 +599,38 @@ summary_stats_rendimiento <- Df_Player_Cluster %>%
 kable(summary_stats_rendimiento, digits = 2)
 
 
+
+```
+
+
+## Clustering 
+
+El análisis de clustering es una técnica multivariante utilizada para identificar grupos homogéneos dentro de un conjunto de datos. En el contexto del rendimiento de los jugadores de la NBA, el clustering permite agrupar a los jugadores en segmentos distintos basados en sus características de rendimiento. Este enfoque es especialmente útil para identificar patrones y tendencias que no son evidentes a simple vista y para realizar análisis más profundos sobre subgrupos específicos de jugadores. Para el análisis de clustering, se utilizarán las variables principales obtenidas del análisis de componentes principales (PCA), así como la variable artificial "Rendimiento", que sintetiza los aspectos más relevantes del rendimiento de los jugadores. Al agrupar a los jugadores de la NBA utilizando estas variables, se espera obtener clusters que representen diferentes perfiles de rendimiento, lo cual puede proporcionar valiosas ideas tanto para el análisis deportivo como para la toma de decisiones estratégicas en equipos y organizaciones.
+
+### Métodos Jerarquicos
+
+En el análisis de clustering, comenzar con métodos jerárquicos ofrece varias ventajas significativas. Los métodos jerárquicos no requieren que se especifique el número de clusters de antemano, lo que permite una exploración más libre de la estructura de los datos. Este enfoque es especialmente útil en las etapas iniciales del análisis. En particular se usaran:
+
+* Método de Average Linkage: Es una técnica de clustering jerárquico aglomerativo que forma clusters basándose en la media de las distancias entre todos los pares de puntos de dos clusters diferentes.
+
+* Método de Ward: El método de Ward es otro enfoque jerárquico aglomerativo que minimiza la suma de las varianzas dentro de cada cluster.
+
+
+```{r Dendograma, echo=FALSE}
+
+# Calcular la matriz de distancias
+dist_matrix <- dist(Df_Player_Cluster[,c("PC1", "PC2", "PC3", "Rendimiento", "Age")], method = "euclidean")
+
+# Aplicar el método de average linkage
+hclust_avg <- hclust(dist_matrix, method = "average")
+
+# Aplicar el método de Ward
+hclust_ward <- hclust(dist_matrix, method = "ward.D2")
+
+# Visualizar los dendrogramas
+par(mfrow = c(1, 2))
+plot(hclust_avg, labels = FALSE, main = "Dendrograma con Average Linkage")
+plot(hclust_ward, labels = FALSE, main = "Dendrograma con Método de Ward")
 
 ```
 
