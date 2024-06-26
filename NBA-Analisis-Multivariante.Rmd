@@ -1,8 +1,10 @@
 ---
-title: "Clasificación y Agrupación de Jugadores de la NBA para la temporada 2024: Un Análisis Multivariante del Rendimiento"
+title: ""
 output: 
   word_document:
     reference_docx: formato_word.docx
+    toc: true
+    toc_depth: 2
 ---
 
 ```{r setup, include=FALSE}
@@ -35,7 +37,12 @@ Df_Player <- Df_Player %>%
 ## Resumen
 
 
-El objetivo de este estudio es crear un modelo multivariante utilizando métricas clave de rendimiento para clasificar y agrupar a los jugadores de la NBA para la temporada 2024. Se utilizará un análisis multivariante de la varianza (MANOVA) utilizando un enfoque estructurado para evaluar las diferencias significativas en el Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%) en relación con la posición y la edad del jugador. Posteriormente, se utilizará un análisis de componentes principales (PCA) para reducir la dimensionalidad de los datos y crear una variable compuesta llamada "Raiting", que representa el rendimiento general de los jugadores. Se utilizará esta nueva variable para agrupar a los jugadores utilizando análisis de clusters para identificar grupos homogéneos de rendimiento. Finalmente, se implementará un análisis discriminante para clasificar a los jugadores en sus respectivas categorías de rendimiento. Esto evaluará la precisión y la capacidad predictiva del modelo creado. Este enfoque completo facilitará una comprensión profunda y práctica del rendimiento de los jugadores, lo que facilitará la clasificación y agrupación de los jugadores en función de una variedad de métricas de rendimiento.
+El objetivo de este estudio es crear un modelo multivariante utilizando métricas clave de rendimiento para clasificar y agrupar a los jugadores de la NBA para la temporada 2024. Se utilizará un análisis multivariante de la varianza (MANOVA) utilizando un enfoque estructurado para evaluar las diferencias significativas en el Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%) en relación con la posición y la edad del jugador. Posteriormente, se utilizará un análisis de componentes principales (PCA) para reducir la dimensionalidad de los datos y crear una variable compuesta llamada "Rendimiento", que representa el rendimiento general de los jugadores. Se utilizará esta nueva variable para agrupar a los jugadores utilizando análisis de clusters para identificar grupos homogéneos de rendimiento. Finalmente, se implementará un análisis discriminante para clasificar a los jugadores en sus respectivas categorías de rendimiento. Esto evaluará la precisión y la capacidad predictiva del modelo creado. Este enfoque completo facilitará una comprensión profunda y práctica del rendimiento de los jugadores, lo que facilitará la clasificación y agrupación de los jugadores en función de una variedad de métricas de rendimiento. El estudio concluyó que, si bien el modelo identificó patrones distintivos de rendimiento, el análisis discriminante mostró limitaciones en la precisión de la clasificación. Este hallazgo sugiere la necesidad de refinar las variables utilizadas o considerar enfoques alternativos para mejorar la precisión del modelo.
+
+Además, la base de datos y los códigos para replicar este informe interactivo están disponibles en el siguiente repositorio de GitHub: [Analisis-Multivariante-NBA](https://github.com/jarof13/Analisis-Multivariante-NBA.git).
+
+\newpage
+
 
 ## Introducción
 
@@ -44,6 +51,8 @@ Tanto para los analistas deportivos como para los equipos profesionales que busc
 La necesidad de desarrollar herramientas analíticas sofisticadas que puedan sintetizar y simplificar la gran cantidad de datos recolectados durante cada temporada es el fundamento de la elección de este tema. La cantidad de datos disponibles ha aumentado exponencialmente desde la introducción de tecnologías de seguimiento y estadísticas avanzadas. Aplicar métodos multivariantes, como el análisis de componentes principales (PCA), el análisis de clusters y el análisis discriminante, se convierte en una estrategia efectiva para reducir la dimensionalidad de los datos y extraer información valiosa en este contexto.
 
 Geopolíticamente, la NBA tiene un impacto global, con jugadores internacionales y una audiencia que se extiende por todo el mundo. También tiene un impacto en Estados Unidos, su país de origen. El vínculo entre este estudio y el entorno se ve en cómo los datos de rendimiento de los jugadores pueden afectar las decisiones financieras y estratégicas de las franquicias, que afectan no solo el juego en sí, sino también aspectos comerciales y de marketing. Este análisis también ayuda a desarrollar técnicas estadísticas que pueden usarse en otros deportes y áreas donde la evaluación del rendimiento es importante. El creciente impacto de la analítica y la inteligencia artificial se puede ver en la integración de técnicas avanzadas de análisis de datos en el deporte.
+
+\newpage
 
 # Planteamiento del Problema
 
@@ -207,9 +216,9 @@ Se observan variaciones en las métricas estadísticas entre las diferentes posi
 summary_stats_pie <- Df_Player %>%
   group_by(Position) %>%
   summarise(
-    N          = n(),
+    Conteo     = n(),
     Media      = mean(PIE),
-    D.Estándar = sd(PIE),
+    Desvio     = sd(PIE),
     Min        = min(PIE),
     Max        = max(PIE),
     Q1         = quantile(PIE, 0.25),
@@ -247,9 +256,9 @@ Los jugadores clasificados como "Young Player" (Joven Jugador) muestran una medi
 summary_stats_pie_age <- Df_Player %>%
   group_by(Age_Group) %>%
   summarise(
-    N          = n(),
+    Conteo     = n(),
     Media      = mean(PIE),
-    D.Estándar = sd(PIE),
+    Desvio     = sd(PIE),
     Min        = min(PIE),
     Max        = max(PIE),
     Q1         = quantile(PIE, 0.25),
@@ -288,9 +297,9 @@ Las estadísticas descriptivas del índice de Impacto del Jugador Estimado (PIE)
 summary_stats_pie_age_position <- Df_Player %>%
   group_by(Age_Group, Position) %>%
   summarise(
-    N          = n(),
+    Conteo     = n(),
     Media      = mean(PIE),
-    D.Estándar = sd(PIE),
+    Desvio     = sd(PIE),
     Min        = min(PIE),
     Max        = max(PIE),
     Q1         = quantile(PIE, 0.25),
@@ -313,9 +322,9 @@ Las estadísticas descriptivas del porcentaje de uso (USG%) de los jugadores de 
 summary_stats_usg <- Df_Player %>%
   group_by(Position) %>%
   summarise(
-    N          = n(),
+    Conteo     = n(),
     Media      = mean(`USG%`),
-    D.Estándar = sd(`USG%`),
+    Desvio     = sd(`USG%`),
     Min        = min(`USG%`),
     Max        = max(`USG%`),
     Q1         = quantile(`USG%`, 0.25),
@@ -354,9 +363,9 @@ Las estadísticas descriptivas del porcentaje de uso (USG%) de los jugadores de 
 summary_stats_usg_age <- Df_Player %>%
   group_by(Age_Group) %>%
   summarise(
-    N          = n(),
+    Conteo     = n(),
     Media      = mean(`USG%`),
-    D.Estándar = sd(`USG%`),
+    Desvio     = sd(`USG%`),
     Min        = min(`USG%`),
     Max        = max(`USG%`),
     Q1         = quantile(`USG%`, 0.25),
@@ -395,9 +404,9 @@ Las estadísticas descriptivas del porcentaje de uso (USG%) condicionadas por la
 summary_stats_usg_age_position <- Df_Player %>%
   group_by(Age_Group, Position) %>%
   summarise(
-    N          = n(),
+    Conteo     = n(),
     Media      = mean(`USG%`),
-    D.Estándar = sd(`USG%`),
+    Desvio     = sd(`USG%`),
     Min        = min(`USG%`),
     Max        = max(`USG%`),
     Q1         = quantile(`USG%`, 0.25),
@@ -587,9 +596,9 @@ Df_Player_Cluster <- Df_Player %>%
 
 summary_stats_rendimiento <- Df_Player_Cluster %>%
   summarise(
-    N          = n(),
+    Conteo     = n(),
     Media      = mean(Rendimiento),
-    D.Estándar = sd(Rendimiento),
+    Desvio     = sd(Rendimiento),
     Min        = min(Rendimiento),
     Max        = max(Rendimiento),
     Q1         = quantile(Rendimiento, 0.25),
@@ -684,9 +693,9 @@ Como se puede observar el Cluster 1 tiene un rendimiento medio notablemente bajo
 summary_stats_rendimiento_cluster <- Df_Player_Cluster %>%
   group_by(Cluster) %>%
   summarise(
-    N          = n(),
+    Conteo     = n(),
     Media      = mean(Rendimiento),
-    D.Estandar = sd(Rendimiento),
+    Desvio     = sd(Rendimiento),
     Min        = min(Rendimiento),
     Max        = max(Rendimiento),
     Q1         = quantile(Rendimiento, 0.25),
@@ -726,9 +735,9 @@ Para interpretar los grupos creados mediante el modelo de Mezcla Gaussiana se ti
 summary_stats_rendimiento_GM <- Df_Player_Cluster %>%
   group_by(GM) %>%
   summarise(
-    N          = n(),
+    Conteo     = n(),
     Media      = mean(Rendimiento),
-    D.Estandar = sd(Rendimiento),
+    Desvio     = sd(Rendimiento),
     Min        = min(Rendimiento),
     Max        = max(Rendimiento),
     Q1         = quantile(Rendimiento, 0.25),
@@ -882,4 +891,22 @@ El análisis discriminante realizado utilizando los grupos definidos por el mode
 
 \newpage
 
+## Bibliografía
 
+1. Aluja, T., Morineau, A. (1999). *Aprender de los datos: el análisis de componentes principales, una aproximación desde el data mining*. EUB Barcelona.
+
+2. Anderson T. (2003). *An Introduction to Multivariate Statistical Analysis*. Willey Series in Probability and Statistics. New Jersey.
+
+3. Canavos, George (2003) *Probabilidad y estadística. Aplicaciones y métodos*. McGraw-Hill, México.
+
+4. Cuadras C. M. (2019). *Nuevos Métodos de Análisis Multivariante*. CMC Editions Barcelona.
+
+5. García Pérez, A. (2005). *Métodos avanzados de estadística aplicada. Técnicas avanzadas*. UNED. Madrid.
+
+6. Johnson, D. E. (2000). *Métodos multivariados aplicados al Análisis de Datos*. International Thomson Editores. México.
+
+7. Johnson A., Wichern D.W. (2007). *Applied Multivariate Statistical Analysis*. Pearson.
+
+8. Peña, D. (2002). *Análisis de datos multivariantes*. Mc Graw Hill Interamericana. Madrid. España.
+
+9. Pérez, C. (2008). *Técnicas de Análisis Multivariante de Datos. Aplicaciones con SPSS*. Pearson. Madrid.
