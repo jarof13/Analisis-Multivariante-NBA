@@ -7,13 +7,13 @@ output:
 
 ```{r setup, include=FALSE}
 library(readxl)
-library(dplyr)
-library(ggplot2)
+library(tidyverse)
 library(knitr)
 library(FactoMineR)
 library(factoextra)
 library(corrplot)
 library(cluster)
+library(mclust)
 
 Df_Player <- read_excel("BBDD_Player.xlsx")
 
@@ -158,6 +158,8 @@ El presente trabajo se sustenta en los métodos estadísticos pertenecientes a l
   * Análisis Multivariante de la Varianza (MANOVA): El Análisis Multivariante de la Varianza (MANOVA) es una extensión del análisis de varianza (ANOVA) que permite evaluar diferencias entre grupos en múltiples variables dependientes simultáneamente. MANOVA analiza si las medias de varias variables dependientes son diferentes entre los niveles de una o más variables independientes categóricas. 
 
   * Análisis de Clusters: El Análisis de Clusters es un conjunto de técnicas que agrupan un conjunto de objetos de manera que los objetos dentro de un mismo grupo (o cluster) sean más similares entre sí que con los objetos de otros grupos. Este método es útil para identificar patrones o estructuras en los datos sin necesidad de información previa sobre los grupos.
+  
+  * Modelo de Mezcla Gaussiana: Es una técnica de modelado estadístico que asume que los datos son una combinación de varias distribuciones gaussianas (normales) con parámetros desconocidos. GMM es una generalización del análisis de clusters, que permite modelar la distribución de datos complejos mediante una combinación ponderada de múltiples gaussianas. 
 
   * Análisis Discriminante: El Análisis Discriminante es una técnica utilizada para clasificar observaciones en categorías predefinidas basándose en un conjunto de variables predictoras. Este método busca encontrar una combinación lineal de las variables que mejor separe las diferentes categorías.
 
@@ -615,22 +617,269 @@ En el análisis de clustering, comenzar con métodos jerárquicos ofrece varias 
 
 * Método de Ward: El método de Ward es otro enfoque jerárquico aglomerativo que minimiza la suma de las varianzas dentro de cada cluster.
 
+Observando el dendrograma generado mediante el método de average linkage y realizando un corte en el rango de los pesos entre 50 y 100, se puede determinar de manera preliminar que un número posible de grupos es tres Este análisis inicial se basa en la identificación de ramas largas dentro del dendrograma, las cuales sugieren que los clusters fusionados en esos puntos son significativamente diferentes entre sí. Al trazar una línea horizontal en este intervalo y observar las intersecciones, se obtiene una primera idea del número de clusters que podrían ser utilizados para un análisis más detallado.
 
-```{r Dendograma, echo=FALSE}
+```{r DendogramaAVL, echo=FALSE, fig.height=5, fig.width=9}
 
 # Calcular la matriz de distancias
-dist_matrix <- dist(Df_Player_Cluster[,c("PC1", "PC2", "PC3", "Rendimiento", "Age")], method = "euclidean")
+dist_matrix <- dist(Df_Player_Cluster[,c("PC1", "PC2", "PC3", "Rendimiento")], method = "euclidean")
 
 # Aplicar el método de average linkage
 hclust_avg <- hclust(dist_matrix, method = "average")
 
+plot(hclust_avg, labels = FALSE, main = "Dendrograma con Average Linkage")
+
+
+```
+
+En el dendrograma generado mediante el método de Ward y realizando un corte en el rango de los pesos entre 200 y 300, se puede determinar de igual manera  que un número posible de grupos es tres. Este análisis se basa en la tendencia del método de Ward a minimizar la variabilidad dentro de cada cluster, lo que resulta en una estructura de ramas más equilibrada y compacta. Al trazar una línea horizontal en este intervalo y observar las intersecciones, se identifica que la fusión de clusters en estos puntos ofrece una partición natural en tres grupos distintos.
+
+
+```{r DendogramaWARD, echo=FALSE, fig.height=5, fig.width=9}
+
 # Aplicar el método de Ward
 hclust_ward <- hclust(dist_matrix, method = "ward.D2")
 
-# Visualizar los dendrogramas
-par(mfrow = c(1, 2))
-plot(hclust_avg, labels = FALSE, main = "Dendrograma con Average Linkage")
 plot(hclust_ward, labels = FALSE, main = "Dendrograma con Método de Ward")
 
 ```
+
+
+### Métodos No Jerarquicos
+
+Estos métodos son especialmente útiles cuando se tiene una gran cantidad de datos y se requiere una agrupación eficiente y práctica. En el contexto del análisis de jugadores de la NBA, los métodos no jerárquicos permiten identificar grupos de jugadores con perfiles similares en términos de rendimiento y características estadísticas. A diferencia de los métodos jerárquicos, que construyen una jerarquía de clusters de manera ascendente (aglomerativa), los métodos no jerárquicos, como el k-means, se enfocan en particionar el conjunto de datos en un número predefinido de clusters. Este enfoque permite una mayor flexibilidad y escalabilidad, especialmente cuando se trabaja con grandes conjuntos de datos.
+
+Para el análisis de jugadores de la NBA, se seleccionarán las variables más representativas del rendimiento de los jugadores, incluyendo los componentes principales derivados del análisis PCA y la variable artificial de rendimiento. Estas variables cuantitativas permitirán una agrupación más precisa y significativa, destacando patrones y tendencias en el rendimiento de los jugadores. Además, la combinación de métodos jerárquicos y no jerárquicos asegura una evaluación preliminar robusta del número de clusters y una optimización eficiente de los grupos resultantes.
+
+
+
+```{r Elbow, echo=FALSE}
+
+fviz_nbclust(scale(Df_Player_Cluster[,c("PC1", "PC2", "PC3", "Rendimiento")]), kmeans, method = "wss") + labs(x ="", y ="", title = "Número Optimo de Clusters") + theme_classic()
+
+```
+
+Se utilizó el método del codo para reforzar la decisión de usar de tres a cuatro clusters. Al graficar la WSS para diferentes números de clusters, se observó que la disminución de la WSS se hace menos pronunciada después de cuatro clusters. Este "codo" indica que cuatro clusters son suficientes para capturar la estructura subyacente de los datos sin introducir una complejidad innecesaria. 
+
+
+```{r Kmeans, echo=FALSE}
+
+set.seed(35) # Fijar la semilla para reproducibilidad
+kmeans_model <- kmeans(scale(Df_Player_Cluster[,c("PC1", "PC2", "PC3", "Rendimiento")]), centers = 3, nstart = 35)
+
+Df_Player_Cluster$Cluster <- kmeans_model$cluster
+
+fviz_cluster(kmeans_model, data = scale(Df_Player_Cluster[,c("PC1", "PC2", "PC3", "Rendimiento")]),
+             ellipse.type = "convex",
+             palette = "jco",
+             ggtheme = theme_classic()) + labs(title="Modelo K-means", x= "", y ="") +
+                theme(legend.position = "none") 
+
+```
+
+Como se puede observar el Cluster 1 tiene un rendimiento medio notablemente bajo, con una dispersión considerable, oscilando entre un rango muy amplio desde los. En contraste, el Cluster 2 muestra un rendimiento promedio significativamente más alto, con una dispersión más estrecha en comparación con los otros clusters. Por último, el Cluster 3 tiene un rendimiento medio moderado, con una dispersión considerable y valores que van desde negativos hasta positivos. Estas diferencias sugieren que los clusters representan grupos distintos en términos de rendimiento, siendo el Cluster 2 el más destacado en términos de valores medios elevados y menor variabilidad interna.
+
+```{r StatsKmeans, echo=FALSE}
+
+summary_stats_rendimiento_cluster <- Df_Player_Cluster %>%
+  group_by(Cluster) %>%
+  summarise(
+    N          = n(),
+    Media      = mean(Rendimiento),
+    D.Estandar = sd(Rendimiento),
+    Min        = min(Rendimiento),
+    Max        = max(Rendimiento),
+    Q1         = quantile(Rendimiento, 0.25),
+    Mediana    = median(Rendimiento),
+    Q3         = quantile(Rendimiento, 0.75)
+  )
+
+
+kable(summary_stats_rendimiento_cluster, digits = 2)
+
+```
+
+Ahora procederemos a realizar la agrupación mediante el Modelo de Mezcla Gaussiana para comparar los grupos obtenidos y determinar cuál método de agrupación ofrece mejores resultados.
+
+
+```{r Gausian, echo=FALSE}
+
+
+gm_model <- Mclust(scale(Df_Player_Cluster[,c("PC1", "PC2", "PC3", "Rendimiento")]), G = 3)
+
+Df_Player_Cluster$GM <- gm_model$classification
+
+
+fviz_cluster(gm_model, data = scale(Df_Player_Cluster[,c("PC1", "PC2", "PC3", "Rendimiento")]), ellipse.type = "convex",
+             palette = "jco", ggtheme = theme_classic()) +
+  labs(title = "Modelo de Mezcla Gaussiana", x= "", y="") +
+  theme(legend.position = "none")  
+
+
+
+```
+
+Para interpretar los grupos creados mediante el modelo de Mezcla Gaussiana se tiene que el grupo 1 se caracteriza por un alto rendimiento, representado por puntajes promedio significativamente altos y una variabilidad moderada. Los jugadores en este grupo tienden a contribuir consistentemente con puntajes altos en los juegos, mostrando habilidades destacadas en múltiples estadísticas que contribuyen al rendimiento general del equipo, el grupo 2 muestra un rendimiento medio-bajo. Aunque tienen una dispersión moderada en sus puntajes, la media general es negativa, lo que indica que algunos jugadores en este grupo pueden tener contribuciones variables y menos consistentes en comparación con los otros grupos. Por ultimo, el grupo 3 representa el rendimiento más bajo, con puntajes promedio negativos los jugadores en este grupo pueden enfrentar desafíos consistentes en su rendimiento, reflejado en puntajes generalmente más bajos en comparación con los otros grupos.
+
+```{r StatsGM, echo=FALSE}
+
+summary_stats_rendimiento_GM <- Df_Player_Cluster %>%
+  group_by(GM) %>%
+  summarise(
+    N          = n(),
+    Media      = mean(Rendimiento),
+    D.Estandar = sd(Rendimiento),
+    Min        = min(Rendimiento),
+    Max        = max(Rendimiento),
+    Q1         = quantile(Rendimiento, 0.25),
+    Mediana    = median(Rendimiento),
+    Q3         = quantile(Rendimiento, 0.75)
+  )
+
+
+kable(summary_stats_rendimiento_GM, digits = 2)
+
+```
+
+Basado en la estructura descriptiva de los grupos obtenidos mediante ambos métodos de clustering, parece ser que el Modelo de Mezcla Gaussiana está proporcionando una agrupación más clara y distintiva. Esto se evidencia en la definición más precisa de los grupos según las características de rendimiento de los jugadores. Mientras que el método K-means mostró tres grupos con variabilidades en el rendimiento, el Modelo de Mezcla Gaussiana ofreció grupos con diferencias más marcadas en términos de rendimiento promedio y variabilidad. Esta observación sugiere que el Modelo de Mezcla Gaussiana podría estar capturando mejor la estructura subyacente de los datos en términos de agrupación basada en el rendimiento de los jugadores.
+
+## Análisis Discriminante
+
+El análisis discriminante es una técnica estadística utilizada para clasificar observaciones en grupos predefinidos basados en diversas características cuantitativas. En el contexto de este estudio, se aplicará el análisis discriminante para evaluar la efectividad de la clasificación de los jugadores de la NBA en los grupos formados por el Modelo de Mezcla Gaussiana. Utilizando el dataframe construido, que incluye variables relevantes como la variable artificial de rendimiento, los componentes principales seleccionados (PC1, PC2 y PC3) y la edad de los jugadores. El objetivo del análisis discriminante es verificar la precisión y validez de las agrupaciones realizadas por el modelo gaussiano, proporcionando una comprensión más profunda de las variables que discriminan entre los diferentes grupos de rendimiento de los jugadores. A través de este enfoque, se espera corroborar la adecuación del Modelo de Mezcla Gaussiana en la segmentación de los jugadores de la NBA y, al mismo tiempo, obtener insights sobre las características distintivas de cada grupo identificado.
+
+En el análisis discriminante lineal (LDA), las medias de cada grupo en el espacio de las variables discriminantes proporcionan información clave sobre las características promedio de cada grupo. A continuación se presenta una interpretación detallada de las medias de cada grupo basado en los resultados obtenidos:
+
+* Componente Principal 1 (PC1):
+
+  - Grupo 1 tiene una media positiva alta en PC1 (11.25), indicando que los jugadores en este grupo tienden a tener altos valores en las variables originales que contribuyen positivamente a este componente.
+  
+  - Grupo 2 tiene una media positiva moderada en PC1 (2.67), sugiriendo valores moderadamente altos en las mismas variables.
+  
+  - Grupo 3 tiene una media negativa alta en PC1 (-12.90), lo que indica que los jugadores en este grupo tienen bajos valores en las variables que contribuyen a este componente.
+
+* Componente Principal 2 (PC2):
+
+  -  Grupo 1 muestra una media positiva alta en PC2 (7.72), indicando una fuerte presencia de las variables originales que influyen positivamente en este componente.
+  
+  - Grupo 2 tiene una media negativa en PC2 (-2.49), sugiriendo una influencia negativa de las variables correspondientes.
+  
+  - Grupo 3 también muestra una media negativa en PC2 (-1.52), aunque menos pronunciada que en el grupo 2.
+  
+* Componente Principal 3 (PC3):
+
+  - Grupo 1 tiene una media positiva en PC3 (6.06), indicando altos valores en las variables que contribuyen a este componente.
+  
+  - Grupo 2 tiene una media negativa en PC3 (-3.32), lo que sugiere una influencia negativa de las variables originales en este grupo.
+  
+  - Grupo 3 tiene una media ligeramente positiva en PC3 (1.11).
+  
+* Rendimiento:
+
+  - Grupo 1 presenta una media de rendimiento muy alta (89.48), indicando que los jugadores en este grupo tienen un rendimiento significativamente superior.
+
+  - Grupo 2 tiene una media de rendimiento casi neutra (1.37), sugiriendo un rendimiento promedio.
+  
+  - Grupo 3 muestra una media de rendimiento negativa significativa (-68.98), indicando que los jugadores en este grupo tienen un rendimiento significativamente inferior.
+  
+* Edad: 
+
+  - Grupo 1 tiene una media de edad de 27.26 años, lo que sugiere que los jugadores en este grupo son ligeramente mayores.
+  
+  - Grupo 2 tiene una media de edad de 26.77 años, indicando una edad promedio.
+  
+  - Grupo 3 tiene una media de edad de 25.95 años, sugiriendo que los jugadores en este grupo son ligeramente más jóvenes.
+
+
+```{r LDA, echo=FALSE, message=FALSE, warning=FALSE}
+library(MASS)
+
+Df_Player_Cluster$GM <- as.factor(Df_Player_Cluster$GM)
+
+lda_model <- lda(GM ~ PC1 + PC2 + PC3 + Rendimiento + Age, data = Df_Player_Cluster)
+
+kable(lda_model$means, digits = 2)
+```
+
+Los coeficientes de los componentes discriminantes proporcionan una idea de cómo las variables originales contribuyen a la discriminación entre los grupos. En este caso, los coeficientes (scaling) para los primeros dos componentes discriminantes (LD1 y LD2) son los siguientes:
+
+* LD1 (Primera Discriminante Lineal): 
+
+  - La variable PC1 tiene el mayor coeficiente (0.07) en LD1, indicando que PC1 es el componente más significativo para la discriminación en esta dirección.
+  
+  - PC3 también contribuye de manera importante (0.06), seguido por Rendimiento (0.02)
+  
+* LD2 (Segunda Discriminante Lineal):
+
+  - PC3 tiene un coeficiente negativo significativo (-0.13), lo que indica que es un factor importante en la discriminación en la dirección opuesta a LD1.
+  
+  - PC1 tiene un coeficiente positivo pequeño (0.07), lo que sugiere que también contribuye a LD2, pero en menor medida.
+  
+Este análisis permite concluir que PC1 y PC3 son las variables clave para discriminar entre los grupos en esta muestra. PC2 y Age también juegan un papel, aunque menos importante. Rendimiento es relevante solo en la primera discriminante lineal (LD1).
+
+```{r Scaling, echo =FALSE, message=FALSE, warning=FALSE }
+
+kable(lda_model$scaling, digits = 2)
+
+```
+
+Los valores singulares (SVD) en el contexto del análisis discriminante lineal (LDA) representan la relación de varianza explicada por cada una de las funciones discriminantes. Los valores se interpretan como:
+
+* LD1: Este es el valor singular correspondiente a la primera función discriminante, representa  la mayor parte de la varianza explicada por el modelo y es la función discriminante más importante para separar los grupos.
+
+* LD2: Este es el valor singular correspondiente a la segunda función discriminante y explica una parte significativa pero menor de la varianza en comparación con LD1.
+
+
+
+```{r SVD, echo=FALSE}
+
+
+svd_df <- data.frame(Function = c("LD1", "LD2"), Singular_Value = lda_model$svd)
+
+kable(svd_df, digits = 2)
+
+```
+
+Estos resultados sugieren que LD1 es la principal dimensión de discriminación entre los grupos, mientras que LD2 añade una dimensión adicional pero menos dominante.Si los valores singulares son significativamente distintos de cero, indican que las funciones discriminantes están explicando una porción significativa de la varianza en los datos. Valores muy cercanos a cero podrían sugerir una pobre separación entre grupos.
+
+
+### Matriz de Confusión
+
+La matriz de confusión muestra cómo el modelo de análisis discriminante clasifica las observaciones en cada grupo. Los resultados se presentan a continuación:
+
+| Actual/Predicción | **Grupo 1** | **Grupo 2** | **Grupo 3** |
+|------------------|---------|---------|---------|
+| **Grupo 1**      |    0    |   72    |    0    |
+| **Grupo 2**      |   18    |   18    |   144   |
+| **Grupo 3**      |   79    |    0    |    6    |
+
+- **Grupo 1**: Se clasificaron correctamente 0 observaciones como pertenecientes al grupo 1, 72 observaciones fueron clasificadas incorrectamente como grupo 2, y 0 como grupo 3.
+- **Grupo 2**: Se clasificaron correctamente 18 observaciones como pertenecientes al grupo 2, 18 observaciones fueron clasificadas incorrectamente como grupo 1, y 144 como grupo 3.
+- **Grupo 3**: Se clasificaron correctamente 6 observaciones como pertenecientes al grupo 3, 79 observaciones fueron clasificadas incorrectamente como grupo 1, y 0 como grupo 2.
+
+
+```{r MatrixConfusion, echo=FALSE, include=FALSE}
+# Predicciones del modelo LDA
+lda_predictions <- predict(lda_model)
+
+# Matriz de confusión para evaluar el rendimiento del modelo
+confusion_matrix <- table(Predicted = lda_predictions$class, Actual = Df_Player_Cluster$Cluster)
+confusion_matrix
+```
+
+Basado en los resultados de la matriz de confusión obtenida, el modelo mostró dificultades significativas en la clasificación precisa de todas las observaciones en sus respectivos grupos. Los errores podrían indicar que las variables utilizadas en el modelo no capturan completamente las diferencias entre los grupos, o que existen interacciones complejas entre las variables que el modelo no pudo captar adecuadamente. Basado en estos resultados, se puede concluir que el modelo de análisis discriminante aplicado en su forma actual no es adecuado para clasificar con precisión los jugadores en los grupos definidos por las variables utilizadas.
+
+\newpage
+
+## Conclusiones
+
+Se observaron diferencias significativas en el Impacto del Jugador Estimado (PIE) y el Porcentaje de Uso (USG%) según la posición del jugador, indicando un impacto diferencial en estas métricas de rendimiento entre las posiciones. En contraste, no se encontraron diferencias significativas en el PIE y USG% según el grupo de edad del jugador, sugiriendo que la edad no influye de manera relevante en estas métricas. Además, no se evidenció una interacción significativa entre la posición del jugador y su grupo de edad en términos de PIE y USG%, lo que sugiere que el efecto de la posición del jugador en estas métricas no varía con la edad.
+
+Se aplicó un Análisis de Componentes Principales (PCA) a un conjunto de métricas clave del rendimiento de jugadores de baloncesto. Se redujo la dimensionalidad a 3 componentes principales que explican más del 80% de la variabilidad de las variables originales. El PC1 está dominado por FT% (porcentaje de tiros libres) y PTS (puntos), destacando la importancia de la precisión en tiros libres y la capacidad de anotación. El PC2 se caracteriza por FG% (porcentaje de tiros de campo), TS% (porcentaje de tiros verdaderos) y EFG% (porcentaje de tiros efectivos), reflejando la eficiencia general en el tiro. El PC3 se centra en PTS, USG% (porcentaje de uso) y REB (rebotes), indicando un perfil de jugador que anota, participa frecuentemente en jugadas y obtiene rebotes. Posteriormente, se creó una variable de rendimiento basada en estos componentes principales. Es importante destacar que ninguna métrica defensiva tuvo especial relevancia al momento de crear los componentes, lo que puede afectar a los jugadores que se destacan o aportán más en el ámbito defensivo, señalando una debilidad en el enfoque al priorizar el aspecto ofensivo del juego.
+
+Mediante el modelo de mezcla gaussiana se formaron tres grupos distintos de jugadores. Este método resultó en grupos coherentes, destacándose especialmente el primer grupo, donde se agruparon jugadores con un alto rendimiento ofensivo, tal como fue captado por los componentes principales y la variable artificial de rendimiento. Estos hallazgos sugieren que el modelo de mezcla gaussiana fue efectivo para identificar perfiles distintivos de jugadores basados en su desempeño en el campo, proporcionando una agrupación que podría ser útil para estrategias de evaluación y desarrollo de talento en el baloncesto.
+
+El análisis discriminante realizado utilizando los grupos definidos por el modelo de mezcla gaussiana mostró dificultades significativas en la clasificación precisa de todas las observaciones en sus respectivos grupos. Los resultados obtenidos de la matriz de confusión revelaron que el modelo no fue eficiente en la clasificación de los jugadores. Los errores observados sugieren posibles limitaciones en las variables utilizadas, que podrían no capturar completamente las diferencias entre los grupos formados, o indicar la presencia de interacciones complejas entre las variables que el modelo no pudo manejar adecuadamente. En conclusión, basándose en estos hallazgos, se puede afirmar que el modelo de análisis discriminante aplicado en su configuración actual no es adecuado para clasificar con precisión los jugadores en los grupos definidos por las variables empleadas.
+
+\newpage
+
 
